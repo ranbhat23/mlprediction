@@ -26,7 +26,7 @@ const rawData: IntradayData[] = [
 async function trainIntradayModel(data: IntradayData[]) {
     // 3. Prepare Data for TensorFlow
     // In this simple example, 'open' is the feature (X) and 'close' is the label (Y)
-    const xs = data.map(d => d.open);
+    const xs = data.map(d => d.open, d. high, d.low, d.close);
     const ys = data.map(d => d.close);
 
     const inputs = tf.tensor2d(xs, [xs.length, 1]); // Feature tensor (N samples, 1 feature)
