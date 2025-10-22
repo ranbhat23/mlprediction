@@ -1,0 +1,13 @@
+export const Config = {
+  // Spreadsheet/Sheet Constants
+  SPREADSHEET_ID: '11yf2A2GP0-Afoqmzbnx_vR6jl1vxCO_e0THmN6javFY',
+  SHEET_RANGE: 'LOGSHEET!A1:E1',
+  SHEET_CELL: 'LOGSHEET!A1',
+  UPDATE_COLUMN: 'LOGSHEET!A',
+  SHEET_COLUMN: 'LOGSHEET!A:A',
+  P_SHEET_RANGE: 'POSITION!A1:E1',
+  P_SHEET_CELL: 'POSITION!A1',
+  P_UPDATE_COLUMN: 'POSITION!A',
+  P_SHEET_COLUMN: 'POSITION!A:A',
+  cronExpression: '*/5 * * * *'
+};
