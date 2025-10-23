@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs-node';
 
-// 1. Data Interface
+// 1. Data Interface (remains the same)
 interface IntradayData {
     open: number;
     high: number;
@@ -8,12 +8,11 @@ interface IntradayData {
     close: number;
 }
 
-// 2. Parsed Intraday Training Data
-// We use your historical data (Date is for context, not model input)
+// 2. Parsed Intraday Training Data (remains the same)
 const rawData: IntradayData[] = [
-    { open: 899.00, high: 906.00, low: 895.00, close: 902.00 }, // Day 1
-    { open: 892.10, high: 902.10, low: 890.10, close: 897.25 }, // Day 2
-    { open: 895.00, high: 907.40, low: 891.30, close: 897.80 }, // Day 3
+    { open: 899.00, high: 906.00, low: 895.00, close: 902.00 },
+    { open: 892.10, high: 902.10, low: 890.10, close: 897.25 },
+    { open: 895.00, high: 907.40, low: 891.30, close: 897.80 },
     { open: 893.80, high: 897.70, low: 889.10, close: 895.20 },
     { open: 911.00, high: 912.55, low: 890.15, close: 893.80 },
     { open: 907.15, high: 920.60, low: 907.10, close: 912.35 },
@@ -32,35 +31,43 @@ const rawData: IntradayData[] = [
     { open: 883.00, high: 888.00, low: 882.10, close: 885.35 },
 ];
 
+/**
+ * Calculates the Pivot Point (P) for the previous day.
+ */
+function calculatePivotPoint(prev: IntradayData): number {
+    return (prev.high + prev.low + prev.close) / 3;
+}
 
 /**
- * Prepares the data using lagged features (Prev Day High/Low/Close)
- * to predict Today's Close.
+ * Prepares the data using 5 lagged features including the Pivot Point.
  */
-function prepareLaggedData(data: IntradayData[]) {
+function prepareLaggedDataWithPivot(data: IntradayData[]) {
     const featureArray: number[][] = [];
     const labelArray: number[] = [];
 
-    // Start from the second data point (index 1) because the first
-    // data point has no "previous day" to draw from.
+    // Start from the second data point (index 1)
     for (let i = 1; i < data.length; i++) {
         const today = data[i];
         const yesterday = data[i - 1];
 
-        // X: [Today's Open, Yesterday's High, Yesterday's Low, Yesterday's Close]
+        // Calculate Pivot Point (P) for yesterday's data
+        const pivot = calculatePivotPoint(yesterday);
+
+        // X: [Open_Today, High_Prev, Low_Prev, Close_Prev, Pivot_Prev]
         featureArray.push([
             today.open,
             yesterday.high,
             yesterday.low,
             yesterday.close,
+            pivot, // The new 5th feature
         ]);
 
         // Y: [Today's Close]
         labelArray.push(today.close);
     }
 
-    // Input shape: [N samples, 4 features]
-    const inputs = tf.tensor2d(featureArray, [featureArray.length, 4]);
+    // Input shape: [N samples, 5 features]
+    const inputs = tf.tensor2d(featureArray, [featureArray.length, 5]);
     const labels = tf.tensor2d(labelArray, [labelArray.length, 1]);
 
     return { inputs, labels };
@@ -68,27 +75,22 @@ function prepareLaggedData(data: IntradayData[]) {
 
 
 async function trainIntradayModel(data: IntradayData[]) {
-    const { inputs, labels } = prepareLaggedData(data);
+    const { inputs, labels } = prepareLaggedDataWithPivot(data);
 
-    // 4. Define the Model Architecture (Simple Linear Model: y = w1x1 + w2x2 + w3x3 + w4x4 + b)
+    // 4. Define the Model Architecture: inputShape MUST be 5
     const model = tf.sequential();
-    // inputShape must be 4 (one for each feature)
-    model.add(tf.layers.dense({ units: 1, inputShape: [4] }));
+    model.add(tf.layers.dense({ units: 1, inputShape: [5] }));
 
-    // 5. Compile the Model (Using Adam optimizer for better convergence)
+    // 5. Compile and Train
     model.compile({
         optimizer: tf.train.adam(0.01),
         loss: 'meanSquaredError',
     });
 
     console.log('Starting model training...');
-    
-    // 6. Train the Model (Increased epochs due to small dataset size)
     await model.fit(inputs, labels, { epochs: 150, verbose: 0 }); 
-
     console.log('Training complete.');
     
-    // Clean up tensors
     inputs.dispose();
     labels.dispose();
     
@@ -96,7 +98,7 @@ async function trainIntradayModel(data: IntradayData[]) {
 }
 
 /**
- * Predicts the closing price using the 4 necessary features.
+ * Predicts the closing price using all 5 necessary features.
  */
 function predictPrice(
     model: tf.Sequential, 
@@ -105,15 +107,23 @@ function predictPrice(
     prevDayLow: number, 
     prevDayClose: number
 ): number {
-    // Input vector must match the training shape: [1 sample, 4 features]
-    const inputData = [[currentOpenPrice, prevDayHigh, prevDayLow, prevDayClose]];
+    // Calculate the Pivot Point for the previous day's data
+    const prevDayPivot = (prevDayHigh + prevDayLow + prevDayClose) / 3;
+
+    // Input vector must match the training shape: [1 sample, 5 features]
+    const inputData = [[
+        currentOpenPrice, 
+        prevDayHigh, 
+        prevDayLow, 
+        prevDayClose, 
+        prevDayPivot // The 5th feature
+    ]];
     
-    const inputTensor = tf.tensor2d(inputData, [1, 4]); 
+    const inputTensor = tf.tensor2d(inputData, [1, 5]); 
     const predictionTensor = model.predict(inputTensor) as tf.Tensor;
     
     const prediction = predictionTensor.dataSync()[0];
     
-    // Clean up tensors
     inputTensor.dispose();
     predictionTensor.dispose();
 
@@ -125,12 +135,11 @@ async function runStrategy() {
     try {
         const trainedModel = await trainIntradayModel(rawData);
 
-        // --- Live Prediction for the new day ---
+        // --- Live Prediction for the new day (Open: 900.90) ---
         
         // Data for today's prediction (Current Open + Yesterday's OHLC)
-        // We use the LAST day's data from the rawData list as "Yesterday's" fixed data
-        const yesterday = rawData[rawData.length - 1]; 
-
+        const yesterday = rawData[rawData.length - 1]; // Last day in the dataset
+        
         // 1. New data point (Today's Open)
         const currentOpenPrice = 900.90; 
         
@@ -139,7 +148,11 @@ async function runStrategy() {
         const prevDayLow = yesterday.low;      // 882.10
         const prevDayClose = yesterday.close;  // 885.35 
         
-        // Make the prediction using all four known inputs
+        // Calculate Yesterday's Pivot Point
+        const prevDayPivot = calculatePivotPoint(yesterday);
+        // Pivot: (888.00 + 882.10 + 885.35) / 3 = 885.15
+
+        // Make the prediction using all five known inputs
         const predictedClose = predictPrice(
             trainedModel, 
             currentOpenPrice, 
@@ -149,7 +162,7 @@ async function runStrategy() {
         );
 
         console.log(`\n--- Model Parameters ---`);
-        console.log(`Input Features (Today's Open: ${currentOpenPrice.toFixed(2)}, Prev H/L/C: ${prevDayHigh.toFixed(2)}/${prevDayLow.toFixed(2)}/${prevDayClose.toFixed(2)})`);
+        console.log(`Inputs: Open=${currentOpenPrice.toFixed(2)}, Prev H/L/C=${prevDayHigh.toFixed(2)}/${prevDayLow.toFixed(2)}/${prevDayClose.toFixed(2)}, Pivot=${prevDayPivot.toFixed(2)}`);
 
         console.log(`\n--- Strategy Output ---`);
         console.log(`Current Open Price: $${currentOpenPrice.toFixed(2)}`);
@@ -164,6 +177,14 @@ async function runStrategy() {
             console.log(`**Decision:** 🟡 HOLD - Prediction is too close to the open price.`);
         }
 
+        // Output comparison with actual close of 899.00
+        const actualClose = 899.00;
+        const deviation = predictedClose - actualClose;
+        console.log(`\n--- Performance Check ---`);
+        console.log(`Actual Close: $${actualClose.toFixed(2)}`);
+        console.log(`Deviation: $${deviation.toFixed(2)}`);
+
+
         trainedModel.dispose();
         
     } catch (error) {
@@ -171,4 +192,4 @@ async function runStrategy() {
     }
 }
 
-// runStrategy(); // Uncomment to run this in your Node.js environment
+runStrategy();
