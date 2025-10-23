@@ -1,0 +1,51 @@
+// Your existing interface, which is the required format for the model
+interface IntradayData {
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+}
+
+// The format returned by your Google Finance method
+interface OhlcArrays {
+    open: number[];
+    high: number[];
+    low: number[];
+    close: number[];
+}
+
+/**
+ * Converts column-based OHLC arrays into a row-based array of IntradayData objects.
+ */
+function transformOhlc(data: OhlcArrays): IntradayData[] {
+    const dataLength = data.open.length;
+    const transformedData: IntradayData[] = [];
+
+    // Ensure all arrays have the same length (a basic check for data integrity)
+    if (data.high.length !== dataLength || data.low.length !== dataLength || data.close.length !== dataLength) {
+        throw new Error("OHLC arrays are not of equal length.");
+    }
+
+    // Iterate through the index (i) to combine the corresponding O, H, L, C values
+    for (let i = 0; i < dataLength; i++) {
+        transformedData.push({
+            open: data.open[i],
+            high: data.high[i],
+            low: data.low[i],
+            close: data.close[i],
+        });
+    }
+
+    return transformedData;
+}
+
+// --- How you would use it ---
+
+// 1. Get data in column format
+// const ohlcArrays = await this.getOhlcArrays();
+
+// 2. Transform the data into the row format your model expects
+// const trainingData: IntradayData[] = transformOhlc(ohlcArrays);
+
+// 3. Use the transformed data to train your model
+// await trainIntradayModel(trainingData);
