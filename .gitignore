@@ -56,5 +56,5 @@ dist
 .vscode-test
 
 # Local configuration files
-config.ts
+# config.ts
 gsheetkey.json
