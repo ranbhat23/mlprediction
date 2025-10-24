@@ -17,7 +17,7 @@ interface OhlcArrays {
 /**
  * Converts column-based OHLC arrays into a row-based array of IntradayData objects.
  */
-function transformOhlc(data: OhlcArrays): IntradayData[] {
+export function transformOhlc(data: OhlcArrays): IntradayData[] {
     const dataLength = data.open.length;
     const transformedData: IntradayData[] = [];
 

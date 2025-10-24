@@ -11,14 +11,14 @@ interface IntradayData {
     low: number;
     close: number;
 }
-
+/*
 // 2. Parsed Intraday Training Data (remains the same)
 let rawData: IntradayData[] = [
   { "open": 900.90, "high": 908.00, "low": 897.35, "close": 898.95 },
   { "open": 899.00, "high": 906.00, "low": 895.00, "close": 902.00 },
   { "open": 892.10, "high": 902.10, "low": 890.10, "close": 897.25 }
 ];
-
+*/
 /**
  * Calculates the Pivot Point (P) for the previous day.
  */
@@ -47,7 +47,7 @@ function prepareLaggedDataWithPivot(data: IntradayData[]) {
             yesterday.high,
             yesterday.low,
             yesterday.close,
-            pivot, // The new 5th feature
+ //           pivot, // The new 5th feature
         ]);
 
         // Y: [Today's Close]
@@ -56,7 +56,7 @@ function prepareLaggedDataWithPivot(data: IntradayData[]) {
     }
 
     // Input shape: [N samples, 5 features]
-    const inputs = tf.tensor2d(featureArray, [featureArray.length, 5]);
+    const inputs = tf.tensor2d(featureArray, [featureArray.length, 4]);
     const labels = tf.tensor2d(labelArray, [labelArray.length, 1]);
 
     return { inputs, labels };
@@ -68,7 +68,7 @@ async function trainIntradayModel(data: IntradayData[]) {
 
     // 4. Define the Model Architecture: inputShape MUST be 5
     const model = tf.sequential();
-    model.add(tf.layers.dense({ units: 1, inputShape: [5] }));
+    model.add(tf.layers.dense({ units: 1, inputShape: [4] }));
 
     // 5. Compile and Train
     model.compile({
@@ -105,10 +105,10 @@ function predictPrice(
         prevDayHigh, 
         prevDayLow, 
         prevDayClose, 
-        prevDayPivot // The 5th feature
+//        prevDayPivot // The 5th feature
     ]];
     
-    const inputTensor = tf.tensor2d(inputData, [1, 5]); 
+    const inputTensor = tf.tensor2d(inputData, [1, 4]); 
     const predictionTensor = model.predict(inputTensor) as tf.Tensor;
     
     const prediction = predictionTensor.dataSync()[0];
@@ -124,15 +124,12 @@ export async function runStrategy(data : IntradayData[]) {
     try {
 //         rawData = data;
         const trainedModel = await trainIntradayModel(data);
-
         // --- Live Prediction for the new day (Open: 900.90) ---
-        
         // Data for today's prediction (Current Open + Yesterday's OHLC)
         const yesterday = data[data.length - 1]; // Last day in the dataset
         
         // 1. New data point (Today's Open)
-        const currentOpenPrice = 3680; 
-        
+        const currentOpenPrice = 811.25;         
         // 2. Previous Day's fixed data (Yesterday)
         const prevDayHigh = yesterday.high;    // 888.00
         const prevDayLow = yesterday.low;      // 882.10
@@ -169,7 +166,7 @@ export async function runStrategy(data : IntradayData[]) {
 
         // Output comparison with actual close of 899.00
  //       const actualClose = 116.50;
-        const actualClose = 3737;
+        const actualClose = 825;
    //     const deviation = (predictedClose - actualClose )/ actualClose * 100;
         const deviation = predictedClose - actualClose;
         console.log(`\n--- Performance Check ---`);
