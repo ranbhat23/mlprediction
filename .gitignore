@@ -57,4 +57,4 @@ dist
 
 # Local configuration files
 # config.ts
-gsheetkey.json
+gsheetskey.json
