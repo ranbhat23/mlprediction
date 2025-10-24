@@ -1,5 +1,9 @@
-import * as tf from '@tensorflow/tfjs-node';
+// ---------------
+// MAIN LOGIC 
+//---------------
+import * as tf from '@tensorflow/tfjs';
 
+//import * as tf from '@tensorflow/tfjs-node';
 // 1. Data Interface (remains the same)
 interface IntradayData {
     open: number;
@@ -131,7 +135,7 @@ function predictPrice(
 }
 
 // 7. Execution Logic
-async function runStrategy() {
+export async function runStrategy() {
     try {
         const trainedModel = await trainIntradayModel(rawData);
 

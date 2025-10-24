@@ -1,5 +1,6 @@
 
-import * as tf from '@tensorflow/tfjs-node';
+//import * as tf from '@tensorflow/tfjs-node';
+import * as tf from '@tensorflow/tfjs';
 
 // 1. Define the Data Interface
 interface IntradayData {
@@ -7,17 +8,16 @@ interface IntradayData {
     high: number;
     low: number;
     close: number;
-    volume: number;
+    pp: number;
 }
 
 // 2. Mock Intraday Training Data (Replace with your actual API data)
 const rawData: IntradayData[] = [
-    { open: 100.0, high: 101.5, low: 99.8, close: 101.2, volume: 150000 },
-    { open: 101.2, high: 102.0, low: 100.5, close: 101.8, volume: 160000 },
-    { open: 101.8, high: 103.1, low: 101.5, close: 102.9, volume: 180000 },
-    { open: 102.9, high: 103.5, low: 102.5, close: 102.6, volume: 170000 },
-    { open: 102.6, high: 103.0, low: 102.0, close: 102.8, volume: 165000 },
-    // ... more data points
+    { open: 100.0, high: 101.5, low: 99.8, close: 101.2, pp: 101 },
+    { open: 101.2, high: 102.0, low: 100.5, close: 101.8, pp: 101 },
+    { open: 101.8, high: 103.1, low: 101.5, close: 102.9, pp: 102 },
+    { open: 102.9, high: 103.5, low: 102.5, close: 102.6, pp: 102.3 },
+    { open: 102.6, high: 103.0, low: 102.0, close: 102.8, pp: 102.40 }
 ];
 
 /**
@@ -27,7 +27,7 @@ const rawData: IntradayData[] = [
 async function trainIntradayModel(data: IntradayData[]) {
     // 3. Prepare Data for TensorFlow
     // In this simple example, 'open' is the feature (X) and 'close' is the label (Y)
-    const xs = data.map(d => d.open, d. high, d.low);
+    const xs = data.map(d => [d.open, d.high, d.low, d.pp]);
     const ys = data.map(d => d.close);
 
     const inputs = tf.tensor2d(xs, [xs.length, 1]); // Feature tensor (N samples, 1 feature)
@@ -44,7 +44,7 @@ async function trainIntradayModel(data: IntradayData[]) {
     });
 
     console.log('Starting model training...');
-    
+
     // 6. Train the Model
     const history = await model.fit(inputs, labels, {
         epochs: 50, // Number of times to iterate over the data
@@ -62,7 +62,7 @@ async function trainIntradayModel(data: IntradayData[]) {
     // Clean up tensors from memory
     inputs.dispose();
     labels.dispose();
-    
+
     return model;
 }
 
@@ -72,9 +72,9 @@ async function trainIntradayModel(data: IntradayData[]) {
 function predictPrice(model: tf.Sequential, newOpenPrice: number): number {
     const inputTensor = tf.tensor2d([newOpenPrice], [1, 1]); // New input
     const predictionTensor = model.predict(inputTensor) as tf.Tensor;
-    
+
     const prediction = predictionTensor.dataSync()[0];
-    
+
     // Clean up tensors from memory
     inputTensor.dispose();
     predictionTensor.dispose();
@@ -86,12 +86,7 @@ function predictPrice(model: tf.Sequential, newOpenPrice: number): number {
 async function runStrategy() {
     try {
         const trainedModel = await trainIntradayModel(rawData);
-
-        // --- Intraday Strategy Simulation ---
-        
-        // Use the model to predict the closing price for a new data point
         const currentOpenPrice = 103.0; // Assume this is the current opening price of the asset
-        
         const predictedClose = predictPrice(trainedModel, currentOpenPrice);
 
         console.log(`\n--- Strategy Output ---`);
@@ -109,7 +104,7 @@ async function runStrategy() {
 
         // Dispose of the model after use
         trainedModel.dispose();
-        
+
     } catch (error) {
         console.error("An error occurred during the ML process:", error);
     }

@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@googleapis/sheets": "^11.1.0",
+    "@tensorflow/tfjs": "^4.22.0",
     "google-auth-library": "^10.2.1",
     "googleapis": "^157.0.0",
     "socket.io-client": "^4.8.1"
