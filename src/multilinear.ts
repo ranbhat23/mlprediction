@@ -16,19 +16,7 @@ interface IntradayData {
 let rawData: IntradayData[] = [
   { "open": 900.90, "high": 908.00, "low": 897.35, "close": 898.95 },
   { "open": 899.00, "high": 906.00, "low": 895.00, "close": 902.00 },
-  { "open": 892.10, "high": 902.10, "low": 890.10, "close": 897.25 },
-  { "open": 895.00, "high": 907.40, "low": 891.30, "close": 897.80 },
-  { "open": 893.80, "high": 897.70, "low": 889.10, "close": 895.20 },
-  { "open": 911.00, "high": 912.55, "low": 890.15, "close": 893.80 },
-  { "open": 907.15, "high": 920.60, "low": 907.10, "close": 912.35 },
-  { "open": 900.00, "high": 911.35, "low": 898.50, "close": 907.15 },
-  { "open": 904.10, "high": 912.80, "low": 900.70, "close": 905.25 },
-  { "open": 900.35, "high": 910.00, "low": 895.60, "close": 904.10 },
-  { "open": 897.00, "high": 907.00, "low": 892.65, "close": 900.35 },
-  { "open": 872.45, "high": 896.50, "low": 872.25, "close": 895.05 },
-  { "open": 887.60, "high": 887.60, "low": 870.55, "close": 872.45 },
-  { "open": 890.50, "high": 898.25, "low": 884.00, "close": 888.20 },
-  { "open": 897.65, "high": 902.10, "low": 892.35, "close": 894.25 }
+  { "open": 892.10, "high": 902.10, "low": 890.10, "close": 897.25 }
 ];
 
 /**
@@ -64,6 +52,7 @@ function prepareLaggedDataWithPivot(data: IntradayData[]) {
 
         // Y: [Today's Close]
         labelArray.push(today.close);
+//        labelArray.push(today.high);
     }
 
     // Input shape: [N samples, 5 features]
@@ -131,18 +120,18 @@ function predictPrice(
 }
 
 // 7. Execution Logic
-export async function runStrategy(data? : IntradayData[]) {
+export async function runStrategy(data : IntradayData[]) {
     try {
-        if (data != null) rawData = data;
-        const trainedModel = await trainIntradayModel(rawData);
+//         rawData = data;
+        const trainedModel = await trainIntradayModel(data);
 
         // --- Live Prediction for the new day (Open: 900.90) ---
         
         // Data for today's prediction (Current Open + Yesterday's OHLC)
-        const yesterday = rawData[rawData.length - 1]; // Last day in the dataset
+        const yesterday = data[data.length - 1]; // Last day in the dataset
         
         // 1. New data point (Today's Open)
-        const currentOpenPrice = 118.22; 
+        const currentOpenPrice = 3680; 
         
         // 2. Previous Day's fixed data (Yesterday)
         const prevDayHigh = yesterday.high;    // 888.00
@@ -179,12 +168,13 @@ export async function runStrategy(data? : IntradayData[]) {
         }
 
         // Output comparison with actual close of 899.00
-        const actualClose = 116.50;
+ //       const actualClose = 116.50;
+        const actualClose = 3737;
+   //     const deviation = (predictedClose - actualClose )/ actualClose * 100;
         const deviation = predictedClose - actualClose;
         console.log(`\n--- Performance Check ---`);
         console.log(`Actual Close: $${actualClose.toFixed(2)}`);
         console.log(`Deviation: $${deviation.toFixed(2)}`);
-
 
         trainedModel.dispose();
         
@@ -193,4 +183,4 @@ export async function runStrategy(data? : IntradayData[]) {
     }
 }
 
-runStrategy();
+//runStrategy();
