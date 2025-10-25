@@ -1,5 +1,8 @@
 import * as tf from '@tensorflow/tfjs-node'; // Use -node for performance
-
+// --- ADD THIS LINE ---
+tf.setBackend('cpu'); // Optional: Helps with consistency if you have a GPU
+tf.random.setSeed(42); // Set a fixed seed (42 is a common convention)
+// ---------------------
 // --- NEW DATA INPUT ---
 const stockData = [
   // IMPORTANT: The data must be in chronological order (oldest to newest).
