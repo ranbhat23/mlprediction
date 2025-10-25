@@ -14,9 +14,45 @@ interface OhlcArrays {
     close: number[];
 }
 
+function cleanAndParsePrice(priceString: string): number {
+    // Remove all commas from the string
+    const cleanedString = priceString.replace(/,/g, '');    
+    return parseFloat(cleanedString);
+}
+
+/**
+ * Transforms data from separate OHLC string arrays (which may contain commas)
+ * into a single chronological array of IntradayData objects (all numbers).
+ * @param data An object containing separate arrays for Open, High, Low, and Close prices (as strings).
+ * @returns A single array of IntradayData objects.
+ */
+export function transformOhlc(data: OhlcArrays): IntradayData[] {
+    const dataLength = data.open.length;
+    const transformedData: IntradayData[] = [];
+
+    // Ensure all arrays have the same length (a basic check for data integrity)
+    if (data.high.length !== dataLength || data.low.length !== dataLength || data.close.length !== dataLength) {
+        throw new Error("OHLC arrays are not of equal length.");
+    }
+
+    // Iterate through the index (i) to combine the corresponding O, H, L, C values
+    for (let i = 0; i < dataLength; i++) {
+        transformedData.push({
+            // Apply the cleaning and parsing function to each string value
+            open: cleanAndParsePrice(data.open[i].toString()),
+            high: cleanAndParsePrice(data.high[i].toString()),
+            low: cleanAndParsePrice(data.low[i].toString()),
+            close: cleanAndParsePrice(data.close[i].toString()),
+        });
+    }
+    return transformedData;
+}
+
+
 /**
  * Converts column-based OHLC arrays into a row-based array of IntradayData objects.
  */
+/*
 export function transformOhlc(data: OhlcArrays): IntradayData[] {
     const dataLength = data.open.length;
     const transformedData: IntradayData[] = [];
@@ -35,10 +71,9 @@ export function transformOhlc(data: OhlcArrays): IntradayData[] {
             close: data.close[i],
         });
     }
-
     return transformedData;
 }
-
+*/
 // --- How you would use it ---
 
 // 1. Get data in column format

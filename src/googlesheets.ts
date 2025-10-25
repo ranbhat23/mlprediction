@@ -180,7 +180,7 @@ export class GoogleSheetManager {
                     // Check 3: Validate the price
                     // We check if it is a valid number AND not a common error string
                     if (!isNaN(numericPrice) && isFinite(numericPrice)) {
-                        console.log(`POLL SUCCESS: Price retrieved in ${Date.now() - startTime}ms: ${numericPrice}`);
+                        //        console.log(`POLL SUCCESS: Price retrieved in ${Date.now() - startTime}ms: ${numericPrice}`);
                         return numericPrice;
                     }
                 }
@@ -225,7 +225,6 @@ export class GoogleSheetManager {
             });
 
             const valueRanges = response.data.valueRanges;
-            console.log(valueRanges);
             if (!valueRanges || valueRanges.length !== 4) {
                 throw new Error("Could not retrieve all five OHLC data ranges.");
             }
@@ -239,7 +238,11 @@ export class GoogleSheetManager {
                 return (values || [])
                     .flat()
                     .map(String) // Ensure each item is a string before parsing
-                    .map(v => parseFloat(v))
+                    .map(v => {
+                        const cleanedString = v.replace(/,/g, '');
+                        // 2. Convert to number
+                        return parseFloat(cleanedString);
+                    })
                     // Filter out any invalid numbers (e.g., blank cells or non-numeric data)
                     .filter(v => !isNaN(v));
             };

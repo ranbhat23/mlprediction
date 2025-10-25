@@ -10,29 +10,19 @@ interface IntradayData {
     close: number;
 }
 
-/**
- * Prepares the features (X) and labels (Y) for the Multivariate Linear Regression model.
- * * Features (X): [Open_t, Close_{t-1}, High_{t-1}, Low_{t-1}]
- * Labels (Y): [[Close_{t}]] - Note: Y must be a 2D array for the MLR library.
- * * @param data The chronological array of stock price data.
- * @returns An object containing the features array (X) and the labels array (Y).
- */
 function prepareLaggedData(data: IntradayData[]): { X: number[][], Y: number[][] } {
     if (data.length < 2) {
         // Need at least one day (t-1) to predict the next day (t)
         return { X: [], Y: [] };
     }
-
     // Features: array of arrays [Open_t, Close_{t-1}, High_{t-1}, Low_{t-1}]
     const X: number[][] = []; 
     // Y must be number[][] (2D array) for MLR constructor
     const Y: number[][] = [];   // Labels: array of [Close_{t}]
-
     // Start from the second day (index 1) because the first day has no t-1 data.
     for (let i = 1; i < data.length; i++) {
         const today = data[i];
         const yesterday = data[i - 1];
-
         // 4 Features for prediction: (Open of TODAY) + (Close, High, Low of YESTERDAY)
         const features: number[] = [
             today.open,        // Feature 1: Current Day's Open (Open_t)
@@ -57,9 +47,7 @@ export async function simpleRunStrategy(excelData: IntradayData[]): Promise<void
         console.error("Error: Need at least 3 data points (2 for training, 1 for prediction input) to run the strategy.");
         return;
     }
-
     console.log(`--- Running MLR Strategy with ${excelData.length} Data Points ---`);
-
     // We isolate the last two data points for the final prediction check:
     // predictionTargetDay is Day N (used for its Open_N and to check its actual Close_N)
     const predictionTargetDay = excelData[excelData.length - 1]; 
@@ -112,7 +100,10 @@ export async function simpleRunStrategy(excelData: IntradayData[]): Promise<void
     console.log(`Actual Close: $${actualClose.toFixed(2)}`);
     const deviation = predictedClose - actualClose;
     console.log(`Deviation: $${deviation.toFixed(2)}`);
+    const _deviation = (predictedClose - actualClose)/actualClose * 100;
+    console.log(`Deviation%: ${_deviation.toFixed(2)}%`);
 
+    /*
     // Optionally, evaluate against the first training point's actual close for illustrative purposes
     const predictionCheckX = X[X.length - 1]; // Last training input (which is already a number[] array of features)
     // We access the single target value from the 2D array Y
@@ -124,24 +115,5 @@ export async function simpleRunStrategy(excelData: IntradayData[]): Promise<void
     console.log(`Actual Close for Day ${X.length}: $${predictionCheckY.toFixed(2)}`);
     console.log(`Model Predicted Close: $${predictedCheck.toFixed(2)}`);
     console.log(`Deviation: $${(predictedCheck - predictionCheckY).toFixed(2)}`);
+    */
 }
-
-// ------------------------
-// --- RUNNABLE EXAMPLE ---
-// ------------------------
-
-const sampleStockData: IntradayData[] = [
-    // Day 1: Training Input t-1 (Lagged features for Day 2)
-    { open: 745.9, high: 749.5, low: 731.95, close: 743.85 },
-    // Day 2: Training Sample 1: Features = [745.0 (Open_2), 743.85, 749.5, 731.95]. Target = 753.80
-    { open: 745.0, high: 758.8, low: 744.85, close: 753.80 },
-    // Day 3: Training Sample 2: Features = [759.95 (Open_3), 753.80, 758.8, 744.85]. Target = 761.95
-    { open: 759.95, high: 769.7, low: 758.05, close: 761.95 },
-    // Day 4: Training Sample 3: Features = [761.9 (Open_4), 761.95, 769.7, 758.05]. Target = 765.95
-    { open: 761.9, high: 769.4, low: 755.3, close: 765.95 },
-    // Day 5 (N-1): Lagged features for Day 6
-    { open: 766.0, high: 790.6, low: 764.1, close: 780.35 },
-    // Day 6 (N - Final Prediction Target): Open_6 is used as a feature, Close_6 is the actual target
-    { open: 785.0, high: 788.0, low: 775.0, close: 778.50 } 
-    // The prediction is made for the Close price of Day 6, using Open_6 and OHLC_5.
-];
