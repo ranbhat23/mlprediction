@@ -15,7 +15,8 @@ async function main() {
     console.log(_ohlc);
    const _ohlclist = transformOhlc(_ohlc);
    console.log(_ohlclist);
-    await runStrategy(_ohlclist);
+  const _result=[..._ohlclist].reverse();
+    await runStrategy(_result);
   }
   catch (err) {
     console.log(err);
