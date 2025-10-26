@@ -114,11 +114,10 @@ export class GoogleSheetManager {
         }
     }
 
-    public async getStockClosePrice(stockSymbol: string): Promise<number | null> {
+    public async getCellValue(stockSymbol: string, _priceCell?: string): Promise<number | null> {
         const symbolCell = 'B1';
-        const priceCell = 'F6';
+        const priceCell = _priceCell ?? 'F6';
         const sheetName = 'GOOGLEFINANCE';
-
         // Polling Constraints
         const MAX_WAIT_TIME_MS = 15000; // 15 seconds maximum wait time
         const POLL_INTERVAL_MS = 2000; // Check every 2 seconds
@@ -156,27 +155,21 @@ export class GoogleSheetManager {
                 if (attempts > 1) {
                     const elapsed = Date.now() - startTime;
                     const remainingTime = MAX_WAIT_TIME_MS - elapsed;
-
                     // Ensure we don't wait longer than the remaining maximum time
                     const waitTime = Math.min(POLL_INTERVAL_MS, remainingTime);
-
                     if (waitTime <= 0) {
                         throw new PollingError('Max wait time reached before reading data.');
                     }
                     await new Promise(resolve => setTimeout(resolve, waitTime));
                 }
-
                 // Check 2: Read the close price cell (E4)
                 const response = await this.sheets.spreadsheets.values.get({
                     spreadsheetId: this.spreadsheetId,
                     range: range,
                 });
-
                 const rawPriceValue = response.data.values?.[0]?.[0];
-
                 if (rawPriceValue) {
                     const numericPrice = parseFloat(rawPriceValue);
-
                     // Check 3: Validate the price
                     // We check if it is a valid number AND not a common error string
                     if (!isNaN(numericPrice) && isFinite(numericPrice)) {
@@ -197,7 +190,6 @@ export class GoogleSheetManager {
                 // We can continue polling on soft errors, but will break if the max time is exceeded.
             }
         }
-
         // If the loop finished without returning a price
         console.log(`Polling failed after ${attempts} attempts. Could not retrieve valid price within 15 seconds.`);
         return null;

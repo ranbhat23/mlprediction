@@ -203,7 +203,7 @@ function prepareLaggedData(data: IntradayData[]): { X: number[][], Y: number[][]
 
         // --- New Indicator Features (all t-1) ---
         const atr_t_minus_1 = calculateATR(data, i, LOOKBACK_PERIOD);
-        const rsi_t_minus_1 = calculateRSI(data, i - 1, LOOKBACK_PERIOD); // RSI needs index-1 as the end date
+   //     const rsi_t_minus_1 = calculateRSI(data, i - 1, LOOKBACK_PERIOD); // RSI needs index-1 as the end date
 
         const sma_t_minus_1 = calculateSMA(data, i, SHORT_PERIOD);
 //        const ema_t_minus_1 = calculateEMA(data, i, SHORT_PERIOD);
@@ -223,7 +223,7 @@ function prepareLaggedData(data: IntradayData[]): { X: number[][], Y: number[][]
             
             // 4 Indicator Features
             atr_t_minus_1,          // Feature 7: Average True Range (ATR_{t-1})
-            rsi_t_minus_1,          // Feature 8: Relative Strength Index (RSI_{t-1})
+//            rsi_t_minus_1,          // Feature 8: Relative Strength Index (RSI_{t-1})
             sma_t_minus_1,          // Feature 9: Short SMA (SMA_{t-1})
             
             // NOTE: Close/VWAP is removed to keep the feature count at 10 and integrate SMA/EMA
@@ -294,7 +294,7 @@ export async function mrlRunStrategy(excelData: IntradayData[], newOpenPrice?: n
     const fullHistoryLength = entireHistoryUpToPreviousDay.length;
     
     const atr_t_minus_1_pred = calculateATR(entireHistoryUpToPreviousDay, fullHistoryLength, LOOKBACK_PERIOD);
-    const rsi_t_minus_1_pred = calculateRSI(entireHistoryUpToPreviousDay, fullHistoryLength - 1, LOOKBACK_PERIOD);
+    //const rsi_t_minus_1_pred = calculateRSI(entireHistoryUpToPreviousDay, fullHistoryLength - 1, LOOKBACK_PERIOD);
 
     const sma_t_minus_1_pred = calculateSMA(entireHistoryUpToPreviousDay, fullHistoryLength, SHORT_PERIOD);
     const ema_t_minus_1_pred = calculateEMA(entireHistoryUpToPreviousDay, fullHistoryLength, SHORT_PERIOD);
@@ -315,7 +315,7 @@ export async function mrlRunStrategy(excelData: IntradayData[], newOpenPrice?: n
         
         // 4 Indicator Features
         atr_t_minus_1_pred,       // Feature 7: Average True Range (ATR_{t-1})
-        rsi_t_minus_1_pred,       // Feature 8: Relative Strength Index (RSI_{t-1})
+     //   rsi_t_minus_1_pred,       // Feature 8: Relative Strength Index (RSI_{t-1})
         sma_t_minus_1_pred,       // Feature 9: Short SMA (SMA_{t-1})
     ];
 
@@ -330,14 +330,13 @@ export async function mrlRunStrategy(excelData: IntradayData[], newOpenPrice?: n
     const actualClose: number = dayToEvaluate.close;
     
     // 8. Output Results
-    console.log('--- Overall Model Performance (Training Set) ---');
     console.log('\n--- Prediction Output ---');
-    console.log('Features (10): [Open, Close, High, Low, PP, Volume, ATR, RSI, SMA(5), EMA(5)] (all t-1 except Open)');
+    console.log('Features (10): [Open, Close, High, Low, PP, Volume, ATR, SMA(5)] (all t-1 except Open)');
     
     // Log the price used for prediction input
     console.log(`Input (t Open PRICE USED): $${openPriceForPrediction.toFixed(2)}`);
 
-    console.log(`Previous Day (t-1) Indicators: Volume ${dayProvidingLaggedFeatures.volume.toFixed(0)}, ATR ${atr_t_minus_1_pred.toFixed(2)}, RSI ${rsi_t_minus_1_pred.toFixed(2)}, SMA(5) ${sma_t_minus_1_pred.toFixed(2)}`);
+    console.log(`Previous Day (t-1) Indicators: Volume ${dayProvidingLaggedFeatures.volume.toFixed(0)}, ATR ${atr_t_minus_1_pred.toFixed(2)}, SMA(5) ${sma_t_minus_1_pred.toFixed(2)}`);
     
     console.log(`Predicted Close Price (t): $${predictedClose.toFixed(2)}`);
     

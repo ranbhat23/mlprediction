@@ -17,17 +17,18 @@ async function main() {
     const _gsheet = GoogleSheetManager.getInstance(Config.SPREADSHEET_ID);
     const _symbol = await getuserInput("ENTER NSE SYMBOL - ");
     const _openval = await getuserInput("ENTER OPEN PRICE - ");
-    const _val = await _gsheet.getStockClosePrice("NSE:" + _symbol);
+    const _val = await _gsheet.getCellValue("NSE:" + _symbol, 'C6');// C6 is open F6 is close
+    console.log(_val);
     const _ohlc = await _gsheet.getOhlcArrays();
     const _ohlclist = transformOhlc(_ohlc);
     const _result = [..._ohlclist].reverse();
 //    await simpleRunStrategy(_result);
-
+/*
   const _ohlcv = await _gsheet.getOhlcvArrays();
     const _ohlcvlist = transformOhlcv(_ohlcv);
     const _vresult = [..._ohlcvlist].reverse();
     await mrlRunStrategy(_vresult,  parseFloat(_openval));
- 
+ */
   }
   catch (err) {
     console.log(err);
