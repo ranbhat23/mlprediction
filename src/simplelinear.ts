@@ -71,7 +71,7 @@ function prepareLaggedData(data: IntradayData[]): { X: number[][], Y: number[][]
     // Features: array of arrays [Open_t, Close_{t-1}, High_{t-1}, Low_{t-1}, PP_{t-1}]
     const X: number[][] = []; 
     // Y must be number[][] (2D array) for MLR constructor
-    const Y: number[][] = [];   // Labels: array of [Close_{t}]
+    const Y: number[][] = [];// Labels: array of [Close_{t}]
 
     // Start from the second day (index 1) because the first day has no t-1 data.
     for (let i = 1; i < data.length; i++) {
@@ -83,11 +83,11 @@ function prepareLaggedData(data: IntradayData[]): { X: number[][], Y: number[][]
 
         // 5 Features: (Open of TODAY) + (Close, High, Low, PP of YESTERDAY)
         const features: number[] = [
-            today.open,        // Feature 1: Current Day's Open (Open_t)
-            yesterday.close,   // Feature 2: Previous Day's Close (Close_{t-1})
-            yesterday.high,    // Feature 3: Previous Day's High (High_{t-1})
-            yesterday.low,     // Feature 4: Previous Day's Low (Low_{t-1})
-            yesterdayPP        // Feature 5: Previous Day's Pivot Point (PP_{t-1})
+            today.open,// Feature 1: Current Day's Open (Open_t)
+            yesterday.close,// Feature 2: Previous Day's Close (Close_{t-1})
+            yesterday.high,// Feature 3: Previous Day's High (High_{t-1})
+            yesterday.low, // Feature 4: Previous Day's Low (Low_{t-1})
+            yesterdayPP// Feature 5: Previous Day's Pivot Point (PP_{t-1})
         ];
         X.push(features);
 
@@ -107,7 +107,7 @@ function flattenY(Y: number[][]): number[][] {
  * * @param excelData The array of IntradayData to train the model and make a prediction.
  */
 export async function simpleRunStrategy(excelData: IntradayData[]): Promise<void> {
-    if (excelData.length < 3) {
+    if (excelData.length < 5) {
         console.error("Error: Need at least 3 data points (2 for training, 1 for prediction input) to run the strategy.");
         return;
     }
@@ -115,13 +115,16 @@ export async function simpleRunStrategy(excelData: IntradayData[]): Promise<void
     console.log(`--- Running MLR Strategy with ${excelData.length} Data Points (with Scaling) ---`);
 
     // We isolate the last two data points for the final prediction check:
+  //  const predictionTargetDay = excelData[excelData.length - 1]; 
+  //  const previousDay = excelData[excelData.length - 2]; 
+    
     const predictionTargetDay = excelData[excelData.length - 1]; 
-    const previousDay = excelData[excelData.length - 2];       
-    
+  
+    const previousDay = excelData[excelData.length - 2]; 
     // The training set is D1 up to D(N-1).
-    const trainingSet = excelData.slice(0, excelData.length - 1);
+   const trainingSet = excelData.slice(0, excelData.length - 1);
+ //    const trainingSet = excelData.slice(0, excelData.length - 0);
     
-    // Prepare X and Y from the training set (original values)
     const { X: X_raw, Y: Y_raw } = prepareLaggedData(trainingSet);
 
     if (X_raw.length === 0) {
@@ -153,10 +156,10 @@ export async function simpleRunStrategy(excelData: IntradayData[]): Promise<void
 
     const lastDayFeatures_raw: number[] = [
         predictionTargetDay.open, 
-        previousDay.close,        
-        previousDay.high,         
-        previousDay.low,          
-        previousDayPP             
+        previousDay.close,
+        previousDay.high, 
+        previousDay.low,
+        previousDayPP 
     ];
 
     // 6. Scale the Prediction Input
@@ -175,12 +178,9 @@ export async function simpleRunStrategy(excelData: IntradayData[]): Promise<void
     // 9. Output Results
     console.log('\n--- Prediction Output ---');
     console.log('*** All prices are now in original scale ***');
-    console.log(`Current Day Open Price: $${predictionTargetDay.open.toFixed(2)}`);
     console.log(`Input features (t Open, t-1 Close, High, Low, PP): [${lastDayFeatures_raw.map(f => f.toFixed(2)).join(', ')}]`);
+    console.log(`Current Day Open Price: $${predictionTargetDay.open.toFixed(2)}`);
     console.log(`Predicted Close Price (t): $${predictedClose.toFixed(2)}`);
-
-    // 10. Performance Check on the last day's prediction
-    console.log(`\n--- Performance Check (Day N) ---`);
     console.log(`Actual Close: $${actualClose.toFixed(2)}`);
     const deviation = predictedClose - actualClose;
     console.log(`Deviation: $${deviation.toFixed(2)}`);

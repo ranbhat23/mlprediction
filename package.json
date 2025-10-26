@@ -20,7 +20,6 @@
   },
   "dependencies": {
     "@googleapis/sheets": "^11.1.0",
-    "@tensorflow/tfjs": "^4.22.0",
     "google-auth-library": "^10.2.1",
     "googleapis": "^157.0.0",
     "ml-regression-multivariate-linear": "^2.0.4",

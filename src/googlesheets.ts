@@ -272,6 +272,77 @@ export class GoogleSheetManager {
             throw new Error("Failed to get OHLC data from Google Sheet.");
         }
     }
+    /**
+ * Grabs OHLC data from the specified ranges in the Google Sheet 
+ * and formats it into four parallel arrays suitable for TA-Lib.
+ * * @returns A promise that resolves to an object containing the four OHLC arrays.
+ */
+    public async getOhlcvArrays(sheetName: string = 'GOOGLEFINANCE'): Promise<{ open: number[], high: number[], low: number[], close: number[], volume: number[] }> {
+        // Define the ranges for the OHLC columns.
+        // We assume the data starts on row 4 and ends on row 54 (51 data points).
+        const ranges = [
+            `${sheetName}!C8:C27`, // Open
+            `${sheetName}!D8:D27`, // High
+            `${sheetName}!E8:E27`, // Low
+            `${sheetName}!F8:F27`, // Close
+            `${sheetName}!G8:G27`, // volume
+        ];
+
+        try {
+            const response = await this.sheets.spreadsheets.values.batchGet({
+                spreadsheetId: this.spreadsheetId,
+                ranges: ranges,
+            });
+
+            const valueRanges = response.data.valueRanges;
+            if (!valueRanges || valueRanges.length !== 5) {
+                throw new Error("Could not retrieve all five OHLC data ranges.");
+            }
+            // Helper function to extract and convert array data
+            const processArray = (rangeIndex: number): number[] => {
+                const values = valueRanges[rangeIndex]?.values;
+
+                // Flatten the 2D array (e.g., [['10.5'], ['11.0'], ...]) and convert to numbers.
+                // .flat() flattens the array by one level.
+                // parseFloat is used for safety in case Google Sheets stores it as a string.
+                return (values || [])
+                    .flat()
+                    .map(String) // Ensure each item is a string before parsing
+                    .map(v => {
+                        const cleanedString = v.replace(/,/g, '');
+                        // 2. Convert to number
+                        return parseFloat(cleanedString);
+                    })
+                    // Filter out any invalid numbers (e.g., blank cells or non-numeric data)
+                    .filter(v => !isNaN(v));
+            };
+            const openArray = processArray(0);
+            const highArray = processArray(1);
+            const lowArray = processArray(2);
+            const closeArray = processArray(3);
+            const volumeArray = processArray(4);
+
+            const length = openArray.length;
+            if (length === 0) {
+                throw new Error("Retrieved arrays are empty. Check sheet name and ranges.");
+            }
+            if (highArray.length !== length || lowArray.length !== length || closeArray.length !== length || volumeArray.length !== length) {
+                console.warn("OHLC arrays have inconsistent lengths. Some data might be missing/non-numeric.");
+            }
+
+            return {
+                open: openArray,
+                high: highArray,
+                low: lowArray,
+                close: closeArray,
+                volume: volumeArray,
+            };
+
+        } catch (error) {
+            console.error("The API returned an error during OHLC data retrieval: ", error);
+            throw new Error("Failed to get OHLC data from Google Sheet.");
+        }
+    }
 }
 
 class PollingError extends Error {

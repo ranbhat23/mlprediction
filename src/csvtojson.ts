@@ -1,4 +1,4 @@
-import {runStrategy} from './multilinear.js'
+import {simpleRunStrategy} from './simplelinear.js'
 
 interface OHLC {
     open: number;
@@ -63,6 +63,6 @@ const rawData =
 
 export function transform() {
     const ohlcArray = parseOHLCData(rawData);
-    runStrategy(ohlcArray);
+    simpleRunStrategy(ohlcArray);
 //    console.log(JSON.stringify(ohlcArray, null, 2));
 }

@@ -5,6 +5,13 @@ interface IntradayData {
     low: number;
     close: number;
 }
+interface IntradayvData {
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+}
 
 // The format returned by your Google Finance method
 interface OhlcArrays {
@@ -13,10 +20,18 @@ interface OhlcArrays {
     low: number[];
     close: number[];
 }
+// The format returned by your Google Finance method
+interface OhlcvArrays {
+    open: number[];
+    high: number[];
+    low: number[];
+    close: number[];
+    volume: number[];
+}
 
 function cleanAndParsePrice(priceString: string): number {
     // Remove all commas from the string
-    const cleanedString = priceString.replace(/,/g, '');    
+    const cleanedString = priceString.replace(/,/g, '');
     return parseFloat(cleanedString);
 }
 
@@ -48,6 +63,28 @@ export function transformOhlc(data: OhlcArrays): IntradayData[] {
     return transformedData;
 }
 
+export function transformOhlcv(data: OhlcvArrays): IntradayvData[] {
+    const dataLength = data.open.length;
+    const transformedData: IntradayvData[] = [];
+
+    // Ensure all arrays have the same length (a basic check for data integrity)
+    if (data.high.length !== dataLength || data.low.length !== dataLength || data.close.length !== dataLength || data.volume.length !== dataLength) {
+        throw new Error("OHLC arrays are not of equal length.");
+    }
+
+    // Iterate through the index (i) to combine the corresponding O, H, L, C values
+    for (let i = 0; i < dataLength; i++) {
+        transformedData.push({
+            // Apply the cleaning and parsing function to each string value
+            open: cleanAndParsePrice(data.open[i].toString()),
+            high: cleanAndParsePrice(data.high[i].toString()),
+            low: cleanAndParsePrice(data.low[i].toString()),
+            close: cleanAndParsePrice(data.close[i].toString()),
+            volume: cleanAndParsePrice(data.volume[i].toString()),
+        });
+    }
+    return transformedData;
+}
 
 /**
  * Converts column-based OHLC arrays into a row-based array of IntradayData objects.

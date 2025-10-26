@@ -1,3 +1,4 @@
+/*
 import * as tf from '@tensorflow/tfjs';
 
 // 1. Data Structure Interface
@@ -142,3 +143,4 @@ async function runRnnExample() {
 }
 
 runRnnExample();
+*/

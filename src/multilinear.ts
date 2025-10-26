@@ -1,6 +1,7 @@
 // ---------------
 // MAIN LOGIC 
 //---------------
+/*
 import * as tf from '@tensorflow/tfjs';
 
 //import * as tf from '@tensorflow/tfjs-node';
@@ -11,24 +12,10 @@ interface IntradayData {
     low: number;
     close: number;
 }
-/*
-// 2. Parsed Intraday Training Data (remains the same)
-let rawData: IntradayData[] = [
-  { "open": 900.90, "high": 908.00, "low": 897.35, "close": 898.95 },
-  { "open": 899.00, "high": 906.00, "low": 895.00, "close": 902.00 },
-  { "open": 892.10, "high": 902.10, "low": 890.10, "close": 897.25 }
-];
-*/
-/**
- * Calculates the Pivot Point (P) for the previous day.
- */
 function calculatePivotPoint(prev: IntradayData): number {
     return (prev.high + prev.low + prev.close) / 3;
 }
 
-/**
- * Prepares the data using 5 lagged features including the Pivot Point.
- */
 function prepareLaggedDataWithPivot(data: IntradayData[]) {
     const featureArray: number[][] = [];
     const labelArray: number[] = [];
@@ -86,9 +73,6 @@ async function trainIntradayModel(data: IntradayData[]) {
     return model;
 }
 
-/**
- * Predicts the closing price using all 5 necessary features.
- */
 function predictPrice(
     model: tf.Sequential, 
     currentOpenPrice: number, 
@@ -181,3 +165,4 @@ export async function runStrategy(data : IntradayData[]) {
 }
 
 //runStrategy();
+*/
