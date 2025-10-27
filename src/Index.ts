@@ -22,9 +22,9 @@ async function main() {
     const _ohlc = await _gsheet.getOhlcArrays();
     const _ohlclist = transformOhlc(_ohlc);
     const _result = [..._ohlclist].reverse();
-//    await simpleRunStrategy(_result);
-/*
-  const _ohlcv = await _gsheet.getOhlcvArrays();
+//    await simpleRunStrategy(_result); // using teserflowjs with less features
+/* best one for now.
+  const _ohlcv = await _gsheet.getOhlcvArrays(); 
     const _ohlcvlist = transformOhlcv(_ohlcv);
     const _vresult = [..._ohlcvlist].reverse();
     await mrlRunStrategy(_vresult,  parseFloat(_openval));
