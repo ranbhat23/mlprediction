@@ -19,11 +19,12 @@ async function main() {
     const _openval = await getuserInput("ENTER OPEN PRICE - ");
     const _val = await _gsheet.getCellValue("NSE:" + _symbol);// C6 is open F6 is close
     const YELLOW = '\x1b[33m';
-    const BLUE = '\x1b[34m';
+    const RED = '\x1b[31m';
     const MAGENTA = '\x1b[35m';
+    const MAGENTA1 = '\x1b[36m';
     const RESET = '\x1b[0m';
 
-    console.log(`${YELLOW}open: ${_val?.open}${RESET} ${BLUE} ${YELLOW}high: ${_val?.high}${RESET}${YELLOW}low: ${_val?.low}${RESET} close: ${_val?.close}${RESET} ${MAGENTA} PivotPoint: ${_val?.pp}${RESET}`);
+    console.log(`${YELLOW}open: ${_val?.open}${RESET} ${MAGENTA1}high: ${_val?.high}${RESET} ${MAGENTA1}low: ${_val?.low}${RESET} ${YELLOW}close: ${_val?.close}${RESET} ${RED} PivotPoint: ${_val?.pp}${RESET}`);
     //    const _ohlc = await _gsheet.getOhlcArrays();
     //    const _ohlclist = transformOhlc(_ohlc);
     //    const _result = [..._ohlclist].reverse();

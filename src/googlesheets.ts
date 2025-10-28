@@ -115,16 +115,16 @@ export class GoogleSheetManager {
     }
 
     public async getCellValue(stockSymbol: string, _closePrice?: string, _openPrice?: string, _ppPrice?: string
-, _highPrice?: string, _lowPrice?: string    ): Promise<{ open: number, close: number, pp: number, high: number, low: number } | null> {
+        , _highPrice?: string, _lowPrice?: string): Promise<{ open: number, close: number, pp: number, high: number, low: number } | null> {
         // --- Configuration ---
         const symbolCell = 'B1';
         // Use an array to manage all required cell ranges efficiently
         const cellRanges = [
             { name: 'open', cell: _openPrice ?? 'C6' },
-            { name: 'close', cell: _closePrice ?? 'F6' },
-            { name: 'pp', cell: _ppPrice ?? 'L6' },
             { name: 'high', cell: _highPrice ?? 'D6' },
             { name: 'low', cell: _lowPrice ?? 'E6' },
+            { name: 'close', cell: _closePrice ?? 'F6' },
+            { name: 'pp', cell: _ppPrice ?? 'L6' }
         ];
         const sheetName = 'GOOGLEFINANCE';
         const MAX_WAIT_TIME_MS = 15000;
@@ -203,7 +203,7 @@ export class GoogleSheetManager {
                 }
 
                 // Check 4: If all three values are valid, return the result
-                if (allValid && Object.keys(currentValues).length === 3) {
+                if (allValid && Object.keys(currentValues).length === 5) {
                     console.log('\x1b[36m%s\x1b[0m', `\n✅ Polling success in ${attempts} attempts!`);
                     return {
                         open: currentValues.open,
