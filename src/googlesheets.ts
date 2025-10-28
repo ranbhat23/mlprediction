@@ -114,17 +114,26 @@ export class GoogleSheetManager {
         }
     }
 
-    public async getCellValue(stockSymbol: string, _priceCell?: string): Promise<number | null> {
+    public async getCellValue(stockSymbol: string, _closePrice?: string, _openPrice?: string, _ppPrice?: string
+, _highPrice?: string, _lowPrice?: string    ): Promise<{ open: number, close: number, pp: number, high: number, low: number } | null> {
+        // --- Configuration ---
         const symbolCell = 'B1';
-        const priceCell = _priceCell ?? 'F6';
+        // Use an array to manage all required cell ranges efficiently
+        const cellRanges = [
+            { name: 'open', cell: _openPrice ?? 'C6' },
+            { name: 'close', cell: _closePrice ?? 'F6' },
+            { name: 'pp', cell: _ppPrice ?? 'L6' },
+            { name: 'high', cell: _highPrice ?? 'D6' },
+            { name: 'low', cell: _lowPrice ?? 'E6' },
+        ];
         const sheetName = 'GOOGLEFINANCE';
-        // Polling Constraints
-        const MAX_WAIT_TIME_MS = 15000; // 15 seconds maximum wait time
-        const POLL_INTERVAL_MS = 2000; // Check every 2 seconds
+        const MAX_WAIT_TIME_MS = 15000;
+        const POLL_INTERVAL_MS = 2000;
+        const rangeSpecs = cellRanges.map(c => `${sheetName}!${c.cell}`);
 
         console.log(`Updating symbol for stock: ${stockSymbol}`);
 
-        // 1. Update the stock symbol cell (B2)
+        // 1. Update the stock symbol cell (B1)
         try {
             await this.sheets.spreadsheets.values.update({
                 spreadsheetId: this.spreadsheetId,
@@ -134,10 +143,9 @@ export class GoogleSheetManager {
                     values: [[stockSymbol]],
                 },
             });
-            console.log('Stock symbol updated successfully. Starting poll...');
-
+            console.log('\x1b[32m%s\x1b[0m', '✅ Stock symbol updated successfully. Starting poll...');
         } catch (error) {
-            console.error('Error updating stock symbol, cannot start polling:', error);
+            console.error('\x1b[31m%s\x1b[0m', 'Error updating stock symbol, cannot start polling:', error);
             return null;
         }
 
@@ -145,57 +153,81 @@ export class GoogleSheetManager {
         const startTime = Date.now();
         let attempts = 0;
 
-        // Loop until max wait time is exceeded
         while (Date.now() - startTime < MAX_WAIT_TIME_MS) {
             attempts++;
-            const range = `${sheetName}!${priceCell}`;
+
+            // Check 1: Wait for the interval (only after the first attempt)
+            if (attempts > 1) {
+                const elapsed = Date.now() - startTime;
+                const remainingTime = MAX_WAIT_TIME_MS - elapsed;
+                const waitTime = Math.min(POLL_INTERVAL_MS, remainingTime);
+
+                if (waitTime <= 0) {
+                    // Throw an error to cleanly exit the loop on timeout
+                    throw new PollingError('Max wait time reached before reading data.');
+                }
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+            }
 
             try {
-                // Check 1: Wait for the interval (only after the first attempt)
-                if (attempts > 1) {
-                    const elapsed = Date.now() - startTime;
-                    const remainingTime = MAX_WAIT_TIME_MS - elapsed;
-                    // Ensure we don't wait longer than the remaining maximum time
-                    const waitTime = Math.min(POLL_INTERVAL_MS, remainingTime);
-                    if (waitTime <= 0) {
-                        throw new PollingError('Max wait time reached before reading data.');
-                    }
-                    await new Promise(resolve => setTimeout(resolve, waitTime));
-                }
-                // Check 2: Read the close price cell (E4)
-                const response = await this.sheets.spreadsheets.values.get({
+                // Check 2: Read all three cells in a single batch request
+                const response = await this.sheets.spreadsheets.values.batchGet({
                     spreadsheetId: this.spreadsheetId,
-                    range: range,
+                    ranges: rangeSpecs, // Array of ranges: ['Sheet!C6', 'Sheet!F6', 'Sheet!L6']
                 });
-                const rawPriceValue = response.data.values?.[0]?.[0];
-                if (rawPriceValue) {
-                    const numericPrice = parseFloat(rawPriceValue);
-                    // Check 3: Validate the price
-                    // We check if it is a valid number AND not a common error string
-                    if (!isNaN(numericPrice) && isFinite(numericPrice)) {
-                        //        console.log(`POLL SUCCESS: Price retrieved in ${Date.now() - startTime}ms: ${numericPrice}`);
-                        return numericPrice;
+
+                const values = response.data.valueRanges;
+                let currentValues: { [key: string]: number } = {};
+                let allValid = true;
+
+                // Check 3: Process and validate all three values
+                for (let i = 0; i < cellRanges.length; i++) {
+                    const name = cellRanges[i].name;
+                    const cell = cellRanges[i].cell;
+                    // The value is in the 'values' array inside the 'valueRanges' array at index i
+                    const rawValue = values?.[i]?.values?.[0]?.[0];
+
+                    if (rawValue) {
+                        const numericValue = parseFloat(rawValue.replace(/,/g, '')); // Safely handle comma separators
+
+                        if (!isNaN(numericValue) && isFinite(numericValue)) {
+                            currentValues[name] = numericValue;
+                            continue; // This value is valid
+                        }
                     }
+
+                    // If we reach here, the value is missing or invalid
+                    console.log(`\x1b[33m%s\x1b[0m`, `Attempt ${attempts} (${(Date.now() - startTime) / 1000}s): Cell ${cell} (${name}) is still loading or contains invalid data ('${rawValue || 'empty'}').`);
+                    allValid = false;
+                    break; // Break the inner loop and continue polling if any value is invalid
                 }
 
-                // If the cell is empty, #N/A, LOADING..., etc.
-                console.log(`Attempt ${attempts}: Cell ${range} is still loading or contains invalid data ('${rawPriceValue || 'empty'}').`);
+                // Check 4: If all three values are valid, return the result
+                if (allValid && Object.keys(currentValues).length === 3) {
+                    console.log('\x1b[36m%s\x1b[0m', `\n✅ Polling success in ${attempts} attempts!`);
+                    return {
+                        open: currentValues.open,
+                        close: currentValues.close,
+                        pp: currentValues.pp,
+                        high: currentValues.high,
+                        low: currentValues.low
+                    };
+                }
 
             } catch (error) {
                 if (error instanceof PollingError) {
-                    console.error(error.message);
+                    console.error('\x1b[31m%s\x1b[0m', error.message);
                     break; // Exit loop on timeout
                 }
-                console.error(`Error during polling attempt ${attempts}:`, error);
-                // We can continue polling on soft errors, but will break if the max time is exceeded.
+                console.error('\x1b[31m%s\x1b[0m', `Error during polling attempt ${attempts}:`, error);
             }
         }
+
         // If the loop finished without returning a price
-        console.log(`Polling failed after ${attempts} attempts. Could not retrieve valid price within 15 seconds.`);
+        console.log('\x1b[31m%s\x1b[0m', `\n❌ Polling failed after ${attempts} attempts. Could not retrieve valid data within 15 seconds.`);
         return null;
     }
-
-    /**
+    /*
      * Grabs OHLC data from the specified ranges in the Google Sheet 
      * and formats it into four parallel arrays suitable for TA-Lib.
      * * @returns A promise that resolves to an object containing the four OHLC arrays.
@@ -328,6 +360,77 @@ export class GoogleSheetManager {
                 low: lowArray,
                 close: closeArray,
                 volume: volumeArray,
+            };
+
+        } catch (error) {
+            console.error("The API returned an error during OHLC data retrieval: ", error);
+            throw new Error("Failed to get OHLC data from Google Sheet.");
+        }
+    }
+    /**
+* Grabs OHLC data from the specified ranges in the Google Sheet 
+* and formats it into four parallel arrays suitable for TA-Lib.
+* * @returns A promise that resolves to an object containing the four OHLC arrays.
+*/
+    public async getOhlcppArrays(sheetName: string = 'GOOGLEFINANCE'): Promise<{ open: number[], high: number[], low: number[], close: number[], pp: number[] }> {
+        // Define the ranges for the OHLC columns.
+        // We assume the data starts on row 4 and ends on row 54 (51 data points).
+        const ranges = [
+            `${sheetName}!C8:C67`, // Open
+            `${sheetName}!D8:D67`, // High
+            `${sheetName}!E8:E67`, // Low
+            `${sheetName}!F8:F67`, // Close
+            `${sheetName}!L8:L67`, // PP
+        ];
+
+        try {
+            const response = await this.sheets.spreadsheets.values.batchGet({
+                spreadsheetId: this.spreadsheetId,
+                ranges: ranges,
+            });
+
+            const valueRanges = response.data.valueRanges;
+            if (!valueRanges || valueRanges.length !== 5) {
+                throw new Error("Could not retrieve all five OHLC data ranges.");
+            }
+            // Helper function to extract and convert array data
+            const processArray = (rangeIndex: number): number[] => {
+                const values = valueRanges[rangeIndex]?.values;
+
+                // Flatten the 2D array (e.g., [['10.5'], ['11.0'], ...]) and convert to numbers.
+                // .flat() flattens the array by one level.
+                // parseFloat is used for safety in case Google Sheets stores it as a string.
+                return (values || [])
+                    .flat()
+                    .map(String) // Ensure each item is a string before parsing
+                    .map(v => {
+                        const cleanedString = v.replace(/,/g, '');
+                        // 2. Convert to number
+                        return parseFloat(cleanedString);
+                    })
+                    // Filter out any invalid numbers (e.g., blank cells or non-numeric data)
+                    .filter(v => !isNaN(v));
+            };
+            const openArray = processArray(0);
+            const highArray = processArray(1);
+            const lowArray = processArray(2);
+            const closeArray = processArray(3);
+            const ppArray = processArray(4);
+
+            const length = openArray.length;
+            if (length === 0) {
+                throw new Error("Retrieved arrays are empty. Check sheet name and ranges.");
+            }
+            if (highArray.length !== length || lowArray.length !== length || closeArray.length !== length || ppArray.length !== length) {
+                console.warn("OHLC arrays have inconsistent lengths. Some data might be missing/non-numeric.");
+            }
+
+            return {
+                open: openArray,
+                high: highArray,
+                low: lowArray,
+                close: closeArray,
+                pp: ppArray,
             };
 
         } catch (error) {

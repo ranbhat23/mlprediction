@@ -328,7 +328,7 @@ export async function mrlRunStrategy(excelData: IntradayData[], newOpenPrice?: n
     // 7. Inverse Scale the Prediction back to original units
     const predictedClose: number = labelScaler.inverseScale([predictedClose_scaled])[0];
     const actualClose: number = dayToEvaluate.close;
-    
+   const profitStyle = 'color: white; background-color: green; font-weight: bold; padding: 2px 5px; border-radius: 3px;'; 
     // 8. Output Results
     console.log('\n--- Prediction Output ---');
     console.log('Features (10): [Open, Close, High, Low, PP, Volume, ATR, SMA(5)] (all t-1 except Open)');
@@ -338,14 +338,19 @@ export async function mrlRunStrategy(excelData: IntradayData[], newOpenPrice?: n
 
     console.log(`Previous Day (t-1) Indicators: Volume ${dayProvidingLaggedFeatures.volume.toFixed(0)}, ATR ${atr_t_minus_1_pred.toFixed(2)}, SMA(5) ${sma_t_minus_1_pred.toFixed(2)}`);
     
-    console.log(`Predicted Close Price (t): $${predictedClose.toFixed(2)}`);
+    console.log(`%cPredicted Close Price (t): $${predictedClose.toFixed(2)}`, profitStyle);
+     
+    const opentoprediction = predictedClose - openPriceForPrediction;
+    console.log(`Open - Prediction (difference): $${opentoprediction.toFixed(2)}`);
     
+    const _opentopredictiondeviation = (predictedClose - openPriceForPrediction) / openPriceForPrediction * 100;
+    console.log(`open - prediction (Deviation)%: ${_opentopredictiondeviation.toFixed(2)}%`);
     // We still log the actual close to measure the error of the simulation:
-    console.log(`Actual Close: $${actualClose.toFixed(2)} (Used for error check only)`);
+ //   console.log(`Actual Close: $${actualClose.toFixed(2)} (Used for error check only)`);
     
-    const deviation = predictedClose - actualClose;
-    console.log(`Deviation: $${deviation.toFixed(2)}`);
+//    const deviation = predictedClose - actualClose;
+//    console.log(`Deviation: $${deviation.toFixed(2)}`);
     
-    const _deviation = (predictedClose - actualClose) / actualClose * 100;
-    console.log(`Deviation%: ${_deviation.toFixed(2)}%`);
+//    const _deviation = (predictedClose - actualClose) / actualClose * 100;
+//    console.log(`Deviation%: ${_deviation.toFixed(2)}%`);
 }

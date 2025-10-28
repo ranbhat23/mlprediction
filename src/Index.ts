@@ -3,7 +3,7 @@ import { simpleRunStrategy } from './simplelinear.js';
 import { mrlRunStrategy } from './mrlinear.js';
 import { GoogleSheetManager } from './googlesheets.js';
 import { Config } from './config.js';
-import { transformOhlc,transformOhlcv } from './utils.js';
+import { transformOhlc, transformOhlcv, jsonToHtmlTable, StockDataItem, transformOhlcpp } from './utils.js';
 import * as readline from "node:readline";
 import { stdin as input, stdout as output } from "node:process";
 
@@ -17,18 +17,27 @@ async function main() {
     const _gsheet = GoogleSheetManager.getInstance(Config.SPREADSHEET_ID);
     const _symbol = await getuserInput("ENTER NSE SYMBOL - ");
     const _openval = await getuserInput("ENTER OPEN PRICE - ");
-    const _val = await _gsheet.getCellValue("NSE:" + _symbol, 'C6');// C6 is open F6 is close
-    console.log(_val);
-    const _ohlc = await _gsheet.getOhlcArrays();
-    const _ohlclist = transformOhlc(_ohlc);
-    const _result = [..._ohlclist].reverse();
-//    await simpleRunStrategy(_result); // using teserflowjs with less features
-/* best one for now.
-  const _ohlcv = await _gsheet.getOhlcvArrays(); 
+    const _val = await _gsheet.getCellValue("NSE:" + _symbol);// C6 is open F6 is close
+    const YELLOW = '\x1b[33m';
+    const BLUE = '\x1b[34m';
+    const MAGENTA = '\x1b[35m';
+    const RESET = '\x1b[0m';
+
+    console.log(`${YELLOW}open: ${_val?.open}${RESET} ${BLUE} ${YELLOW}high: ${_val?.high}${RESET}${YELLOW}low: ${_val?.low}${RESET} close: ${_val?.close}${RESET} ${MAGENTA} PivotPoint: ${_val?.pp}${RESET}`);
+    //    const _ohlc = await _gsheet.getOhlcArrays();
+    //    const _ohlclist = transformOhlc(_ohlc);
+    //    const _result = [..._ohlclist].reverse();
+    //        const _ohlcpp = await _gsheet.getOhlcppArrays();
+    //    const _ohlclistpp = transformOhlcpp(_ohlcpp);
+    //    const _res = [..._ohlclistpp].reverse();
+    //  jsonToHtmlTable(_res as StockDataItem[]);  
+    //    await simpleRunStrategy(_result); // using teserflowjs with less features
+    // best one for now.
+    const _ohlcv = await _gsheet.getOhlcvArrays();
     const _ohlcvlist = transformOhlcv(_ohlcv);
     const _vresult = [..._ohlcvlist].reverse();
-    await mrlRunStrategy(_vresult,  parseFloat(_openval));
- */
+    console.log('open'+_val?.open);
+    await mrlRunStrategy(_vresult, _val?.open);
   }
   catch (err) {
     console.log(err);
