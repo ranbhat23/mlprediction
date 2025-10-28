@@ -14,9 +14,9 @@ interface IntradayData {
 
 // --- CONFIGURATION CONSTANTS ---
 // Lookback period for indicators like ATR and RSI.
-const LOOKBACK_PERIOD = 14; 
+const LOOKBACK_PERIOD = 14;
 // Short period for simpler moving averages, more suitable for a small dataset.
-const SHORT_PERIOD = 5; 
+const SHORT_PERIOD = 5;
 
 // Helper class for Min-Max Scaling (remains unchanged)
 class MinMaxScaler {
@@ -101,7 +101,7 @@ function calculateSMA(data: IntradayData[], index: number, period: number): numb
     if (index < period) return data[index]?.close || 0; // Return current close or 0 if too early
     let sum = 0;
     // Sum closes from index - period up to index - 1
-    for (let i = index - period; i < index; i++) { 
+    for (let i = index - period; i < index; i++) {
         sum += data[i].close;
     }
     return sum / period;
@@ -114,13 +114,13 @@ function calculateSMA(data: IntradayData[], index: number, period: number): numb
 function calculateEMA(data: IntradayData[], index: number, period: number): number {
     if (index < period) {
         // Not enough data for full EMA, return SMA approximation
-        return calculateSMA(data, index, period); 
+        return calculateSMA(data, index, period);
     }
-    
+
     const multiplier = 2 / (period + 1);
-    
+
     // 1. Initialize EMA with SMA of the first 'period' days
-    let ema = calculateSMA(data, period, period); 
+    let ema = calculateSMA(data, period, period);
 
     // 2. Iterate from day 'period' up to index-1 to get the t-1 EMA value
     for (let i = period; i < index; i++) {
@@ -164,7 +164,7 @@ function calculateRSI(data: IntradayData[], index: number, period: number = LOOK
  */
 function calculateVWAP(data: IntradayData[], index: number): number {
     if (index === 0) return data[0].close;
-    
+
     let cumulativeTPV = 0; // Cumulative Typical Price * Volume
     let cumulativeVolume = 0; // Cumulative Volume
 
@@ -189,8 +189,8 @@ function prepareLaggedData(data: IntradayData[]): { X: number[][], Y: number[][]
         console.warn(`Warning: Need at least ${LOOKBACK_PERIOD + 1} data points to generate features with indicators.`);
         return { X: [], Y: [] };
     }
-    
-    const X: number[][] = []; 
+
+    const X: number[][] = [];
     const Y: number[][] = [];
 
     // Start feature generation at index LOOKBACK_PERIOD (e.g., Day 14) 
@@ -203,10 +203,10 @@ function prepareLaggedData(data: IntradayData[]): { X: number[][], Y: number[][]
 
         // --- New Indicator Features (all t-1) ---
         const atr_t_minus_1 = calculateATR(data, i, LOOKBACK_PERIOD);
-   //     const rsi_t_minus_1 = calculateRSI(data, i - 1, LOOKBACK_PERIOD); // RSI needs index-1 as the end date
+        //     const rsi_t_minus_1 = calculateRSI(data, i - 1, LOOKBACK_PERIOD); // RSI needs index-1 as the end date
 
         const sma_t_minus_1 = calculateSMA(data, i, SHORT_PERIOD);
-//        const ema_t_minus_1 = calculateEMA(data, i, SHORT_PERIOD);
+        //        const ema_t_minus_1 = calculateEMA(data, i, SHORT_PERIOD);
 
         // 10 Features: 
         // [Open_t, Close_{t-1}, High_{t-1}, Low_{t-1}, PP_{t-1}, Volume_{t-1}, ATR_{t-1}, RSI_{t-1}, SMA_{t-1}, EMA_{t-1}]
@@ -217,15 +217,15 @@ function prepareLaggedData(data: IntradayData[]): { X: number[][], Y: number[][]
             yesterday.high,         // Feature 3: Previous Day's High (High_{t-1})
             yesterday.low,          // Feature 4: Previous Day's Low (Low_{t-1})
             yesterdayPP,            // Feature 5: Previous Day's Pivot Point (PP_{t-1})
-            
+
             // Core Volume Feature
             yesterday.volume,       // Feature 6: Previous Day's Volume (Volume_{t-1})
-            
+
             // 4 Indicator Features
             atr_t_minus_1,          // Feature 7: Average True Range (ATR_{t-1})
-//            rsi_t_minus_1,          // Feature 8: Relative Strength Index (RSI_{t-1})
+            //            rsi_t_minus_1,          // Feature 8: Relative Strength Index (RSI_{t-1})
             sma_t_minus_1,          // Feature 9: Short SMA (SMA_{t-1})
-            
+
             // NOTE: Close/VWAP is removed to keep the feature count at 10 and integrate SMA/EMA
         ];
         X.push(features);
@@ -256,13 +256,13 @@ export async function mrlRunStrategy(excelData: IntradayData[], newOpenPrice?: n
     console.log(`--- Running MLR Strategy with ${excelData.length} Data Points (10 Features) ---`);
 
     // The day being predicted and evaluated (index N-1 in the array).
-    const dayToEvaluate = excelData[excelData.length - 1]; 
+    const dayToEvaluate = excelData[excelData.length - 1];
     // The previous day, providing all the t-1 features (index N-2 in the array).
-    const dayProvidingLaggedFeatures = excelData[excelData.length - 2]; 
+    const dayProvidingLaggedFeatures = excelData[excelData.length - 2];
 
     // The training set is D1 up to D(N-1). 
     const trainingSet = excelData.slice(0, excelData.length - 1);
-    
+
     // Prepare the training data (X_raw contains D14 up to D(N-1) features)
     const { X: X_raw, Y: Y_raw } = prepareLaggedData(trainingSet);
 
@@ -270,14 +270,14 @@ export async function mrlRunStrategy(excelData: IntradayData[], newOpenPrice?: n
         console.log("Not enough data to create features and labels after lookback period.");
         return;
     }
-    
+
     // 1. Initialize and Fit Scalers
     const featureScaler = new MinMaxScaler(X_raw);
-    const labelScaler = new MinMaxScaler(Y_raw.map(row => [row[0]])); 
-    
+    const labelScaler = new MinMaxScaler(Y_raw.map(row => [row[0]]));
+
     // 2. Scale the Training Data
     const X_scaled = featureScaler.scaleAll(X_raw);
-    const Y_scaled = labelScaler.scaleAll(flattenY(Y_raw)); 
+    const Y_scaled = labelScaler.scaleAll(flattenY(Y_raw));
 
     console.log(`Training Model on ${X_scaled.length} scaled samples (10 Features)...`);
 
@@ -285,14 +285,14 @@ export async function mrlRunStrategy(excelData: IntradayData[], newOpenPrice?: n
     const regression = new MLR(X_scaled, Y_scaled);
 
     // 4. Prepare New Input for Prediction (for the last day in the set, Day N)
-    const entireHistoryUpToPreviousDay = excelData.slice(0, excelData.length - 1); 
+    const entireHistoryUpToPreviousDay = excelData.slice(0, excelData.length - 1);
 
     // --- Calculate the 9 features for Day N prediction ---
     const previousDayPP = (dayProvidingLaggedFeatures.high + dayProvidingLaggedFeatures.low + dayProvidingLaggedFeatures.close) / 3;
 
     // Use the entire history up to the previous day (length - 1) for indicators
     const fullHistoryLength = entireHistoryUpToPreviousDay.length;
-    
+
     const atr_t_minus_1_pred = calculateATR(entireHistoryUpToPreviousDay, fullHistoryLength, LOOKBACK_PERIOD);
     //const rsi_t_minus_1_pred = calculateRSI(entireHistoryUpToPreviousDay, fullHistoryLength - 1, LOOKBACK_PERIOD);
 
@@ -309,13 +309,13 @@ export async function mrlRunStrategy(excelData: IntradayData[], newOpenPrice?: n
         dayProvidingLaggedFeatures.high,  // Feature 3: Previous Day's High (High_{t-1})
         dayProvidingLaggedFeatures.low,   // Feature 4: Previous Day's Low (Low_{t-1})
         previousDayPP,            // Feature 5: Previous Day's Pivot Point (PP_{t-1})
-        
+
         // Core Volume Feature
         dayProvidingLaggedFeatures.volume, // Feature 6: Previous Day's Volume (Volume_{t-1})
-        
+
         // 4 Indicator Features
         atr_t_minus_1_pred,       // Feature 7: Average True Range (ATR_{t-1})
-     //   rsi_t_minus_1_pred,       // Feature 8: Relative Strength Index (RSI_{t-1})
+        //   rsi_t_minus_1_pred,       // Feature 8: Relative Strength Index (RSI_{t-1})
         sma_t_minus_1_pred,       // Feature 9: Short SMA (SMA_{t-1})
     ];
 
@@ -328,29 +328,29 @@ export async function mrlRunStrategy(excelData: IntradayData[], newOpenPrice?: n
     // 7. Inverse Scale the Prediction back to original units
     const predictedClose: number = labelScaler.inverseScale([predictedClose_scaled])[0];
     const actualClose: number = dayToEvaluate.close;
-   const profitStyle = 'color: white; background-color: green; font-weight: bold; padding: 2px 5px; border-radius: 3px;'; 
     // 8. Output Results
     console.log('\n--- Prediction Output ---');
     console.log('Features (10): [Open, Close, High, Low, PP, Volume, ATR, SMA(5)] (all t-1 except Open)');
-    
+
     // Log the price used for prediction input
     console.log(`Input (t Open PRICE USED): $${openPriceForPrediction.toFixed(2)}`);
 
-    console.log(`Previous Day (t-1) Indicators: Volume ${dayProvidingLaggedFeatures.volume.toFixed(0)}, ATR ${atr_t_minus_1_pred.toFixed(2)}, SMA(5) ${sma_t_minus_1_pred.toFixed(2)}`);
-    
-    console.log(`%cPredicted Close Price (t): $${predictedClose.toFixed(2)}`, profitStyle);
-     
+    const RESET = '\x1b[0m';
+    const YELLOW = '\x1b[33m';
+
+    console.log(`${YELLOW}Predicted Close Price (t): $${predictedClose.toFixed(2)}${RESET}`);
+
     const opentoprediction = predictedClose - openPriceForPrediction;
     console.log(`Open - Prediction (difference): $${opentoprediction.toFixed(2)}`);
-    
+
     const _opentopredictiondeviation = (predictedClose - openPriceForPrediction) / openPriceForPrediction * 100;
     console.log(`open - prediction (Deviation)%: ${_opentopredictiondeviation.toFixed(2)}%`);
     // We still log the actual close to measure the error of the simulation:
- //   console.log(`Actual Close: $${actualClose.toFixed(2)} (Used for error check only)`);
-    
-//    const deviation = predictedClose - actualClose;
-//    console.log(`Deviation: $${deviation.toFixed(2)}`);
-    
-//    const _deviation = (predictedClose - actualClose) / actualClose * 100;
-//    console.log(`Deviation%: ${_deviation.toFixed(2)}%`);
+    //   console.log(`Actual Close: $${actualClose.toFixed(2)} (Used for error check only)`);
+
+    //    const deviation = predictedClose - actualClose;
+    //    console.log(`Deviation: $${deviation.toFixed(2)}`);
+
+    //    const _deviation = (predictedClose - actualClose) / actualClose * 100;
+    //    console.log(`Deviation%: ${_deviation.toFixed(2)}%`);
 }

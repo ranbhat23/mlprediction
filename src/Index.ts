@@ -23,7 +23,6 @@ async function main() {
     const MAGENTA = '\x1b[35m';
     const MAGENTA1 = '\x1b[36m';
     const RESET = '\x1b[0m';
-
     console.log(`${YELLOW}open: ${_val?.open}${RESET} ${MAGENTA1}high: ${_val?.high}${RESET} ${MAGENTA1}low: ${_val?.low}${RESET} ${YELLOW}close: ${_val?.close}${RESET} ${RED} PivotPoint: ${_val?.pp}${RESET}`);
     //    const _ohlc = await _gsheet.getOhlcArrays();
     //    const _ohlclist = transformOhlc(_ohlc);
@@ -37,7 +36,6 @@ async function main() {
     const _ohlcv = await _gsheet.getOhlcvArrays();
     const _ohlcvlist = transformOhlcv(_ohlcv);
     const _vresult = [..._ohlcvlist].reverse();
-    console.log('open'+_val?.open);
     await mrlRunStrategy(_vresult, _val?.open);
   }
   catch (err) {
