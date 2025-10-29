@@ -1,24 +1,18 @@
 import * as fs from 'fs'; // Import the File System module
-
-// Your existing interface, which is the required format for the model
-interface IntradayData {
+interface IntradayBaseData {
     open: number;
     high: number;
     low: number;
     close: number;
 }
-interface IntradayvData {
-    open: number;
-    high: number;
-    low: number;
-    close: number;
+// Your existing interface, which is the required format for the model
+interface IntradayData extends IntradayBaseData {
+   
+}
+interface IntradayvData extends IntradayBaseData {
     volume: number;
 }
-interface IntradayppData {
-    open: number;
-    high: number;
-    low: number;
-    close: number;
+interface IntradayppData extends IntradayBaseData {
     pp: number;
 }
 
@@ -30,19 +24,11 @@ interface OhlcArrays {
     close: number[];
 }
 // The format returned by your Google Finance method
-interface OhlcvArrays {
-    open: number[];
-    high: number[];
-    low: number[];
-    close: number[];
+interface OhlcvArrays extends OhlcArrays {
     volume: number[];
 }
 // The format returned by your Google Finance method
-interface OhlcppArrays {
-    open: number[];
-    high: number[];
-    low: number[];
-    close: number[];
+interface OhlcppArrays extends OhlcArrays {
     pp: number[];
 }
 
