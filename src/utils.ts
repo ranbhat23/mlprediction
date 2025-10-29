@@ -78,8 +78,24 @@ function transformBase<T extends OhlcArrays, R extends IntradayBaseData>(
 
     return transformedData;
 }
+// Re-export the simplified functions
+
+export function transformOhlc(data: OhlcArrays): IntradayData[] {
+    // No extra keys are passed
+    return transformBase<OhlcArrays, IntradayData>(data);
+}
+
+export function transformOhlcv(data: OhlcvArrays): IntradayvData[] {
+    // Pass 'volume' as the extra key
+    return transformBase<OhlcvArrays, IntradayvData>(data, ['volume']);
+}
+
+export function transformOhlcpp(data: OhlcppArrays): IntradayppData[] {
+    // Pass 'pp' as the extra key
+    return transformBase<OhlcppArrays, IntradayppData>(data, ['pp']);
+            }
+            
 /**
- 
  
 export function transformOhlc(data: OhlcArrays): IntradayData[] {
     const dataLength = data.open.length;
