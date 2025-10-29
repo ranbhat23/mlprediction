@@ -94,7 +94,24 @@ export function transformOhlcpp(data: OhlcppArrays): IntradayppData[] {
     // Pass 'pp' as the extra key
     return transformBase<OhlcppArrays, IntradayppData>(data, ['pp']);
             }
-            
+
+            function convertObjectArrayTo2DArray(data: any[]): (string | number)[][] {
+    if (data.length === 0) return [];
+
+    // 1. Get Headers (Keys from the first object)
+    const headers = Object.keys(data[0]);
+
+    // 2. Create the 2D Array
+    const values = [headers]; // Start with the header row
+
+    // 3. Populate Data Rows
+    data.forEach(item => {
+        const row = headers.map(header => item[header]);
+        values.push(row);
+    });
+
+    return values;
+            }
 /**
  
 export function transformOhlc(data: OhlcArrays): IntradayData[] {
