@@ -37,13 +37,50 @@ function cleanAndParsePrice(priceString: string): number {
     const cleanedString = priceString.replace(/,/g, '');
     return parseFloat(cleanedString);
 }
+// Define a union type for the possible additional keys
+type ExtraDataKey = 'volume' | 'pp';
 
 /**
- * Transforms data from separate OHLC string arrays (which may contain commas)
- * into a single chronological array of IntradayData objects (all numbers).
- * @param data An object containing separate arrays for Open, High, Low, and Close prices (as strings).
- * @returns A single array of IntradayData objects.
+ * A generic helper function to transform array-based OHLC data
+ * into an array of object-based data points.
+ * @param data The input array-based data (e.g., OhlcArrays, OhlcvArrays, etc.)
+ * @param extraKeys An array of strings representing the additional keys to process.
+ * @returns An array of transformed data objects.
  */
+function transformBase<T extends OhlcArrays, R extends IntradayBaseData>(
+    data: T,
+    extraKeys: ExtraDataKey[] = []
+): R[] {
+    const dataLength = data.open.length;
+    const transformedData: R[] = [];
+    const allKeys = ['open', 'high', 'low', 'close', ...extraKeys] as (keyof T)[];
+
+    // --- Data Integrity Check (Refactored) ---
+    // Check if all necessary arrays have the same length
+    for (const key of allKeys) {
+        if (!Array.isArray(data[key as keyof T]) || (data[key as keyof T] as number[]).length !== dataLength) {
+            throw new Error(`Data array for '${String(key)}' is missing or has inconsistent length.`);
+        }
+    }
+
+    // --- Core Transformation Logic (Refactored) ---
+    for (let i = 0; i < dataLength; i++) {
+        const item: Record<string, number> = {};
+
+        for (const key of allKeys) {
+            const array = data[key as keyof T] as number[];
+            // @ts-ignore: We know 'item' will eventually match 'R'
+            item[key] = cleanAndParsePrice(array[i].toString());
+        }
+
+        transformedData.push(item as R);
+    }
+
+    return transformedData;
+}
+/**
+ 
+ 
 export function transformOhlc(data: OhlcArrays): IntradayData[] {
     const dataLength = data.open.length;
     const transformedData: IntradayData[] = [];
@@ -110,7 +147,7 @@ export function transformOhlcpp(data: OhlcppArrays): IntradayppData[] {
     }
     return transformedData;
 }
-
+*/
 /**
  * Converts column-based OHLC arrays into a row-based array of IntradayData objects.
  */
