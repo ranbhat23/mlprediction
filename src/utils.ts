@@ -112,6 +112,19 @@ export function transformOhlcpp(data: OhlcppArrays): IntradayppData[] {
 
     return values;
             }
+/*
+const valuesToInsert = convertObjectArrayTo2DArray(tradeLog);
+
+await this.sheets.spreadsheets.values.update({
+    spreadsheetId: this.spreadsheetId,
+    // Specify the top-left cell where the data range begins
+    range: `${sheetName}!A1`, 
+    valueInputOption: 'USER_ENTERED',
+    // The request body contains the entire 2D array of data
+    requestBody: { 
+        values: valuesToInsert,
+    },
+}); */
 /**
  
 export function transformOhlc(data: OhlcArrays): IntradayData[] {
